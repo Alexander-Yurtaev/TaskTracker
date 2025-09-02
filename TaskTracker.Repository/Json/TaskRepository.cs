@@ -48,7 +48,7 @@ public class TaskRepository : ITaskRepository
         // Read from file
         List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
 
-        TaskTracker.Repository.Models.Task? task = taskList.FirstOrDefault(t => t.Id == id);
+        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
 
         if (task is null)
         {
@@ -70,6 +70,25 @@ public class TaskRepository : ITaskRepository
         taskList = taskList.Where(t => t.Status == status).ToList();
 
         return taskList;
+    }
+
+    public async Task Delete(int id)
+    {
+        await CreateIfNotExists();
+
+        // Read from file
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+
+        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
+
+        if (task is null)
+        {
+            return;
+        }
+
+        taskList.Remove(task);
+
+        await SaveTasksAsync(taskList);
     }
 
     private async Task CreateIfNotExists()
