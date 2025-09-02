@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Text.Json;
+﻿using System.Text.Json;
 using TaskTracker.Repository.Models;
 using Task = System.Threading.Tasks.Task;
 
@@ -60,6 +59,17 @@ public class TaskRepository : ITaskRepository
         task.UpdatedAt = DateTime.Now;
 
         await SaveTasksAsync(taskList);
+    }
+
+    public async Task<List<Models.Task>> GetTasks(TaskStatuses status)
+    {
+        await CreateIfNotExists();
+
+        // Read from file
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+        taskList = taskList.Where(t => t.Status == status).ToList();
+
+        return taskList;
     }
 
     private async Task CreateIfNotExists()

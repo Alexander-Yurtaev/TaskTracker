@@ -1,6 +1,8 @@
 ﻿using FluentAssertions;
 using System.Text.Json;
 using TaskTracker.Repository.Json;
+using TaskTracker.Repository.Models;
+using Task = System.Threading.Tasks.Task;
 
 namespace TaskTracker.Tests.Json;
 
@@ -60,6 +62,45 @@ public class TaskRepositoryTests
         foreach (var task in tasks)
         {
             task.Description.Should().StartWith("Test task for GetAllTasks method #");
+        }
+    }
+
+    [Fact]
+    public async Task GetTasksTest()
+    {
+        // Arrange
+        if (File.Exists(FileName))
+        {
+            File.Delete(FileName);
+        }
+
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        foreach (var status in Enum.GetValues<TaskStatuses>())
+        {
+            for (int i = 1; i < 11; i++)
+            {
+                int id = i + (int)status;
+                TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for GetAllTasks method #{id}.");
+                task.Status = status;
+                taskList.Add(task);
+            }
+        }
+        
+        await SaveTasksAsync(taskList);
+
+        // Act
+        Dictionary<TaskStatuses, List<TaskTracker.Repository.Models.Task>> taskDic = new ();
+        TaskRepository repository = new();
+        foreach (var status in Enum.GetValues<TaskStatuses>())
+        {
+            var tasks = await repository.GetTasks(status);
+            taskDic.Add(status, tasks);
+        }
+
+        // Assert
+        foreach (KeyValuePair<TaskStatuses, List<Repository.Models.Task>> pair in taskDic)
+        {
+            pair.Value.Count.Should().Be(10);
         }
     }
 

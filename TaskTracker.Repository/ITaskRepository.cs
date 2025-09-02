@@ -7,4 +7,6 @@ public interface ITaskRepository
     Task<List<TaskTracker.Repository.Models.Task>> GetAllTasks();
 
     Task Update(int id, string description);
+
+    Task<List<TaskTracker.Repository.Models.Task>> GetTasks(TaskTracker.Repository.Models.TaskStatuses status);
 }
