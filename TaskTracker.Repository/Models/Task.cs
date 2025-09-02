@@ -16,5 +16,5 @@ public class Task
     public DateTime CreatedAt { get; set; }
 
     // The date and time when the task was last updated
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

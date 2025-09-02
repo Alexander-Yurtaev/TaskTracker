@@ -1,5 +1,5 @@
-﻿using System.Text.Json;
-using FluentAssertions;
+﻿using FluentAssertions;
+using System.Text.Json;
 using TaskTracker.Repository.Json;
 
 namespace TaskTracker.Tests.Json;
@@ -17,9 +17,8 @@ public class TaskRepositoryTests
             File.Delete(FileName);
         }
 
-        TaskRepository repository = new();
-
         // Act
+        TaskRepository repository = new();
         var id = await repository.Add("New Test Task");
 
         // Assert
@@ -42,13 +41,16 @@ public class TaskRepositoryTests
             File.Delete(FileName);
         }
 
-        TaskRepository repository = new();
-        for (int i = 0; i < 10; i++)
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        for (int i = 1; i < 11; i++)
         {
-            await repository.Add($"Test task for GetAllTasks method #{i}.");
+            TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for GetAllTasks method #{i}.");
+            taskList.Add(task);
         }
-        
+        await SaveTasksAsync(taskList);
+
         // Act
+        TaskRepository repository = new();
         var tasks = await repository.GetAllTasks();
 
         // Assert
@@ -59,5 +61,63 @@ public class TaskRepositoryTests
         {
             task.Description.Should().StartWith("Test task for GetAllTasks method #");
         }
+    }
+
+    [Fact]
+    public async Task UpdateTest()
+    {
+        // Arrange
+        if (File.Exists(FileName))
+        {
+            File.Delete(FileName);
+        }
+
+        int taskId = 1;
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        TaskTracker.Repository.Models.Task task = CreateTask(taskId, "Test task for Update method.");
+        taskList.Add(task);
+        await SaveTasksAsync(taskList);
+
+        // Act
+        TaskRepository repository = new();
+        string newDescription = $"Updated task with id={taskId}";
+        await repository.Update(taskId, newDescription);
+
+        // Assert
+        taskList = await LoadTasksAsync();
+        TaskTracker.Repository.Models.Task? updatedTask = taskList.FirstOrDefault(t => t.Id == taskId);
+
+        updatedTask.Should().NotBeNull();
+        updatedTask.Description.Should().BeEquivalentTo(newDescription);
+        updatedTask.UpdatedAt.Should().NotBeNull();
+        updatedTask.UpdatedAt.Should().BeAfter(updatedTask.CreatedAt);
+    }
+
+    private TaskTracker.Repository.Models.Task CreateTask(int id, string description)
+    {
+        TaskTracker.Repository.Models.Task task = new()
+        {
+            Id = id,
+            Description = description,
+            CreatedAt = DateTime.Now
+        };
+        return task;
+    }
+
+    private async Task<List<TaskTracker.Repository.Models.Task>> LoadTasksAsync()
+    {
+        // Read from file
+        string jsonString = await File.ReadAllTextAsync(FileName);
+
+        List<TaskTracker.Repository.Models.Task> taskList =
+            JsonSerializer.Deserialize<List<TaskTracker.Repository.Models.Task>>(jsonString) ?? [];
+
+        return taskList;
+    }
+
+    private async Task SaveTasksAsync(List<TaskTracker.Repository.Models.Task> taskList)
+    {
+        var contents = JsonSerializer.Serialize(taskList);
+        await File.WriteAllTextAsync(FileName, contents);
     }
 }

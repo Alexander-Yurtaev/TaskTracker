@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Generic;
+using System.Text.Json;
 using TaskTracker.Repository.Models;
 using Task = System.Threading.Tasks.Task;
 
@@ -39,6 +40,26 @@ public class TaskRepository : ITaskRepository
         List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
 
         return taskList;
+    }
+
+    public async Task Update(int id, string description)
+    {
+        await CreateIfNotExists();
+
+        // Read from file
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+
+        TaskTracker.Repository.Models.Task? task = taskList.FirstOrDefault(t => t.Id == id);
+
+        if (task is null)
+        {
+            throw new NullReferenceException($"Task with id={id} was not found.");
+        }
+
+        task.Description = description;
+        task.UpdatedAt = DateTime.Now;
+
+        await SaveTasksAsync(taskList);
     }
 
     private async Task CreateIfNotExists()
