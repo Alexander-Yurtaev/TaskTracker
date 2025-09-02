@@ -134,6 +134,38 @@ public class TaskRepositoryTests
         updatedTask.UpdatedAt.Should().BeAfter(updatedTask.CreatedAt);
     }
 
+    [Theory]
+    [InlineData(TaskStatuses.InProgress, TaskStatuses.ToDo)]
+    [InlineData(TaskStatuses.ToDo, TaskStatuses.Done)]
+    public async Task UpdateStatus(TaskStatuses oldStatus, TaskStatuses newStatus)
+    {
+        // Arrange
+        if (File.Exists(FileName))
+        {
+            File.Delete(FileName);
+        }
+
+        int taskId = 1;
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        TaskTracker.Repository.Models.Task task = CreateTask(taskId, "Test task for Update method.");
+        task.Status = oldStatus;
+        taskList.Add(task);
+        await SaveTasksAsync(taskList);
+
+        // Act
+        TaskRepository repository = new();
+        await repository.UpdateStatus(taskId, newStatus);
+
+        // Assert
+        taskList = await LoadTasksAsync();
+        TaskTracker.Repository.Models.Task? updatedTask = taskList.FirstOrDefault(t => t.Id == taskId);
+
+        updatedTask.Should().NotBeNull();
+        updatedTask.Status.Should().Be(newStatus);
+        updatedTask.UpdatedAt.Should().NotBeNull();
+        updatedTask.UpdatedAt.Should().BeAfter(updatedTask.CreatedAt);
+    }
+
     [Fact]
     public async Task Delete_Exists_Task()
     {

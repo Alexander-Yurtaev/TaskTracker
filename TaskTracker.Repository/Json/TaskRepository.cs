@@ -91,6 +91,26 @@ public class TaskRepository : ITaskRepository
         await SaveTasksAsync(taskList);
     }
 
+    public async Task UpdateStatus(int id, TaskStatuses status)
+    {
+        await CreateIfNotExists();
+
+        // Read from file
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+
+        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
+
+        if (task is null)
+        {
+            throw new NullReferenceException($"Task with id={id} was not found.");
+        }
+
+        task.Status = status;
+        task.UpdatedAt = DateTime.Now;
+
+        await SaveTasksAsync(taskList);
+    }
+
     private async Task CreateIfNotExists()
     {
         if (!File.Exists(FileName))

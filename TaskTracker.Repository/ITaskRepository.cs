@@ -1,4 +1,7 @@
-﻿namespace TaskTracker.Repository;
+﻿using TaskTracker.Repository.Models;
+using Task = System.Threading.Tasks.Task;
+
+namespace TaskTracker.Repository;
 
 public interface ITaskRepository
 {
@@ -11,4 +14,6 @@ public interface ITaskRepository
     Task<List<TaskTracker.Repository.Models.Task>> GetTasks(Models.TaskStatuses status);
 
     Task Delete(int id);
+
+    Task UpdateStatus(int id, TaskStatuses status);
 }
