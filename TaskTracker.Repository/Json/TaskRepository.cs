@@ -31,6 +31,16 @@ public class TaskRepository : ITaskRepository
         return task.Id;
     }
 
+    public async Task<List<Models.Task>> GetAllTasks()
+    {
+        await CreateIfNotExists();
+
+        // Read from file
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+
+        return taskList;
+    }
+
     private async Task CreateIfNotExists()
     {
         if (!File.Exists(FileName))
