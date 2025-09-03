@@ -51,7 +51,7 @@ public class TaskRepository : ITaskRepository
 
         if (task is null)
         {
-            throw new NullReferenceException($"Task with id={id} was not found.");
+            throw new KeyNotFoundException($"Task with id={id} was not found.");
         }
 
         task.Description = description;
