@@ -10,18 +10,26 @@ public class TaskRepositoryTests
 {
     private const string FileName = "TaskTracker.json";
 
-    [Fact]
-    public async Task Add()
+    private readonly TaskRepository _repository;
+
+    public TaskRepositoryTests()
     {
-        // Arrange
         if (File.Exists(FileName))
         {
             File.Delete(FileName);
         }
 
+        _repository = new TaskRepository();
+    }
+
+    [Fact]
+    public async Task Should_Successfully_Add_New_Task_And_Create_File()
+    {
+        // Arrange
+        string taskDescription = "New Test Task";
+
         // Act
-        TaskRepository repository = new();
-        var id = await repository.Add("New Test Task");
+        var id = await _repository.Add(taskDescription);
 
         // Assert
         id.Should().BeGreaterThan(0, "Id was not initial");
@@ -32,28 +40,23 @@ public class TaskRepositoryTests
 
         taskList.Should().NotBeNull();
         taskList.Count.Should().Be(1);
+
+        var task = taskList.First();
+
+        task.Id.Should().Be(1);
+        task.Description.Should().BeEquivalentTo(taskDescription);
+        task.Status.Should().Be(TaskStatuses.ToDo);
+        task.UpdatedAt.Should().BeNull();
     }
 
     [Fact]
-    public async Task GetAllTasks()
+    public async Task Should_Return_All_Tasks_When_Multiple_Tasks_Exist()
     {
         // Arrange
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
-        List<TaskTracker.Repository.Models.Task> taskList = new();
-        for (int i = 1; i < 11; i++)
-        {
-            TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for GetAllTasks method #{i}.");
-            taskList.Add(task);
-        }
-        await SaveTasksAsync(taskList);
+        await SeedTasks(10);
 
         // Act
-        TaskRepository repository = new();
-        var tasks = await repository.GetAllTasks();
+        var tasks = await _repository.GetAllTasks();
 
         // Assert
         tasks.Should().NotBeNullOrEmpty();
@@ -61,39 +64,32 @@ public class TaskRepositoryTests
 
         foreach (var task in tasks)
         {
-            task.Description.Should().StartWith("Test task for GetAllTasks method #");
+            task.Description.Should().StartWith("Test task #");
         }
     }
 
     [Fact]
-    public async Task GetTasks()
+    public async Task Should_Correctly_Filter_Tasks_By_Status()
     {
         // Arrange
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
-        List<TaskTracker.Repository.Models.Task> taskList = new();
+        await SeedTasks(Enum.GetValues<TaskStatuses>().Length * 10);
+        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
         foreach (var status in Enum.GetValues<TaskStatuses>())
         {
-            for (int i = 1; i < 11; i++)
+            for (int i = 1; i <= 10; i++)
             {
-                int id = i + (int)status;
-                TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for GetAllTasks method #{id}.");
+                int id = i + 10*(int)status;
+                var task = taskList.Single(t => t.Id == id);
                 task.Status = status;
-                taskList.Add(task);
             }
         }
-        
         await SaveTasksAsync(taskList);
 
         // Act
         Dictionary<TaskStatuses, List<TaskTracker.Repository.Models.Task>> taskDic = new ();
-        TaskRepository repository = new();
         foreach (var status in Enum.GetValues<TaskStatuses>())
         {
-            var tasks = await repository.GetTasks(status);
+            var tasks = await _repository.GetTasks(status);
             taskDic.Add(status, tasks);
         }
 
@@ -105,14 +101,9 @@ public class TaskRepositoryTests
     }
 
     [Fact]
-    public async Task Update()
+    public async Task Should_Successfully_Update_Task_Description_And_Timestamp()
     {
         // Arrange
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
         int taskId = 1;
         List<TaskTracker.Repository.Models.Task> taskList = new();
         TaskTracker.Repository.Models.Task task = CreateTask(taskId, "Test task for Update method.");
@@ -120,9 +111,8 @@ public class TaskRepositoryTests
         await SaveTasksAsync(taskList);
 
         // Act
-        TaskRepository repository = new();
         string newDescription = $"Updated task with id={taskId}";
-        await repository.Update(taskId, newDescription);
+        await _repository.Update(taskId, newDescription);
 
         // Assert
         taskList = await LoadTasksAsync();
@@ -130,6 +120,8 @@ public class TaskRepositoryTests
 
         updatedTask.Should().NotBeNull();
         updatedTask.Description.Should().BeEquivalentTo(newDescription);
+        updatedTask.Status.Should().Be(task.Status);
+        updatedTask.CreatedAt.Should().Be(task.CreatedAt);
         updatedTask.UpdatedAt.Should().NotBeNull();
         updatedTask.UpdatedAt.Should().BeAfter(updatedTask.CreatedAt);
     }
@@ -137,14 +129,9 @@ public class TaskRepositoryTests
     [Theory]
     [InlineData(TaskStatuses.InProgress, TaskStatuses.ToDo)]
     [InlineData(TaskStatuses.ToDo, TaskStatuses.Done)]
-    public async Task UpdateStatus(TaskStatuses oldStatus, TaskStatuses newStatus)
+    public async Task Should_Successfully_Change_Task_Status_When_Valid_Status_Provided(TaskStatuses oldStatus, TaskStatuses newStatus)
     {
         // Arrange
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
         int taskId = 1;
         List<TaskTracker.Repository.Models.Task> taskList = new();
         TaskTracker.Repository.Models.Task task = CreateTask(taskId, "Test task for Update method.");
@@ -153,8 +140,7 @@ public class TaskRepositoryTests
         await SaveTasksAsync(taskList);
 
         // Act
-        TaskRepository repository = new();
-        await repository.UpdateStatus(taskId, newStatus);
+        await _repository.UpdateStatus(taskId, newStatus);
 
         // Assert
         taskList = await LoadTasksAsync();
@@ -167,27 +153,16 @@ public class TaskRepositoryTests
     }
 
     [Fact]
-    public async Task Delete_Exists_Task()
+    public async Task Should_Successfully_Delete_Existing_Task_ById()
     {
         // Arrange
         int deletedId = 5;
 
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
         List<TaskTracker.Repository.Models.Task> taskList = new();
-        for (int i = 1; i < 11; i++)
-        {
-            TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for Delete method #{i}.");
-            taskList.Add(task);
-        }
-        await SaveTasksAsync(taskList);
+        await SeedTasks(10);
 
         // Act
-        TaskRepository repository = new();
-        await repository.Delete(deletedId);
+        await _repository.Delete(deletedId);
 
         // Assert
         taskList = await LoadTasksAsync();
@@ -197,43 +172,58 @@ public class TaskRepositoryTests
     }
 
     [Fact]
-    public async Task Delete_Should_Not_Throw()
+    public async Task Should_Not_Throw_Exception_When_Deleting_NonExistent_Task()
     {
         // Arrange
         int deletedId = 55;
 
-        if (File.Exists(FileName))
-        {
-            File.Delete(FileName);
-        }
-
         List<TaskTracker.Repository.Models.Task> taskList = new();
-        for (int i = 1; i < 11; i++)
-        {
-            TaskTracker.Repository.Models.Task task = CreateTask(i, $"Test task for Delete method #{i}.");
-            taskList.Add(task);
-        }
-        await SaveTasksAsync(taskList);
+        await SeedTasks(10);
 
         // Act
-        TaskRepository repository = new();
-        Func<Task> act = async () => await repository.Delete(deletedId);
+        Func<Task> act = async () => await _repository.Delete(deletedId);
 
         // Assert
         taskList.SingleOrDefault(t => t.Id == deletedId).Should().BeNull();
         await act.Should().NotThrowAsync<Exception>();
     }
 
+    [Fact]
+    public async Task Should_Successfully_Delete_Last_Task()
+    {
+        // Arrange
+        int deletedId = 1;
+
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        TaskTracker.Repository.Models.Task task = CreateTask(deletedId, $"Test task for Delete method #{deletedId}.");
+        taskList.Add(task);
+        await SaveTasksAsync(taskList);
+
+        // Act
+        await _repository.Delete(deletedId);
+
+        // Assert
+        taskList = await LoadTasksAsync();
+
+        taskList.Count.Should().Be(0);
+    }
+
     #region Private Methods
+
+    private async Task SeedTasks(int count)
+    {
+        List<TaskTracker.Repository.Models.Task> taskList = new();
+        for (int i = 1; i <= count; i++)
+        {
+            var task = CreateTask(i, $"Test task #{i}");
+            taskList.Add(task);
+        }
+        await SaveTasksAsync(taskList);
+    }
 
     private TaskTracker.Repository.Models.Task CreateTask(int id, string description)
     {
-        TaskTracker.Repository.Models.Task task = new()
-        {
-            Id = id,
-            Description = description,
-            CreatedAt = DateTime.Now
-        };
+        TaskTracker.Repository.Models.Task task = new(id, description);
         return task;
     }
 

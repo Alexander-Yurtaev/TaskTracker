@@ -2,8 +2,15 @@
 
 public class Task
 {
+    public Task(int id, string description)
+    {
+        Id = id;
+        Description = description;
+        CreatedAt = DateTime.Now;
+    }
+
     // A unique identifier for the task
-    public int Id { get; set; }
+    public int Id { get; }
 
     // A short description of the task
     public string Description { get; set; }

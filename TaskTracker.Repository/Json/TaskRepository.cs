@@ -8,17 +8,29 @@ public class TaskRepository : ITaskRepository
 {
     private const string FileName = "TaskTracker.json";
 
-    public async Task<int> Add(string description)
+    public async Task<List<Models.Task>> GetAllTasks()
     {
         await CreateIfNotExists();
 
         // Read from file
         List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
 
-        TaskTracker.Repository.Models.Task task = new()
+        return taskList;
+    }
+
+    public async Task<int> Add(string description)
+    {
+        description = description.Trim();
+        if (string.IsNullOrEmpty(description))
         {
-            Id = taskList.Count == 0 ? 1 : taskList.Max(d => d.Id),
-            Description = description,
+            throw new ArgumentException($"Description must not be empty!");
+        }
+
+        List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
+
+        var id = taskList.Count == 0 ? 1 : taskList.Max(d => d.Id);
+        TaskTracker.Repository.Models.Task task = new(id, description)
+        {
             Status = TaskStatuses.ToDo,
             CreatedAt = DateTime.Now
         };
@@ -31,24 +43,11 @@ public class TaskRepository : ITaskRepository
         return task.Id;
     }
 
-    public async Task<List<Models.Task>> GetAllTasks()
-    {
-        await CreateIfNotExists();
-
-        // Read from file
-        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
-
-        return taskList;
-    }
-
     public async Task Update(int id, string description)
     {
-        await CreateIfNotExists();
+        List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
 
-        // Read from file
-        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
-
-        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
+        TaskTracker.Repository.Models.Task? task = GetTaskById(id, taskList);
 
         if (task is null)
         {
@@ -63,10 +62,7 @@ public class TaskRepository : ITaskRepository
 
     public async Task<List<Models.Task>> GetTasks(TaskStatuses status)
     {
-        await CreateIfNotExists();
-
-        // Read from file
-        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
+        List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
         taskList = taskList.Where(t => t.Status == status).ToList();
 
         return taskList;
@@ -74,12 +70,9 @@ public class TaskRepository : ITaskRepository
 
     public async Task Delete(int id)
     {
-        await CreateIfNotExists();
+        List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
 
-        // Read from file
-        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
-
-        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
+        TaskTracker.Repository.Models.Task? task = GetTaskById(id, taskList);
 
         if (task is null)
         {
@@ -93,16 +86,13 @@ public class TaskRepository : ITaskRepository
 
     public async Task UpdateStatus(int id, TaskStatuses status)
     {
-        await CreateIfNotExists();
+        List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
 
-        // Read from file
-        List<TaskTracker.Repository.Models.Task> taskList = await LoadTasksAsync();
-
-        TaskTracker.Repository.Models.Task? task = taskList.SingleOrDefault(t => t.Id == id);
+        TaskTracker.Repository.Models.Task? task = GetTaskById(id, taskList);
 
         if (task is null)
         {
-            throw new NullReferenceException($"Task with id={id} was not found.");
+            throw new KeyNotFoundException($"Task with id={id} was not found.");
         }
 
         task.Status = status;
@@ -138,6 +128,7 @@ public class TaskRepository : ITaskRepository
         }
         catch (JsonException e)
         {
+            Console.WriteLine($"There is an exception while deserialize data from file: {e.Message}");
             return [];
         }
     }
@@ -146,5 +137,15 @@ public class TaskRepository : ITaskRepository
     {
         var contents = JsonSerializer.Serialize(taskList);
         await File.WriteAllTextAsync(FileName, contents);
+    }
+
+    private TaskTracker.Repository.Models.Task? GetTaskById(int id, List<TaskTracker.Repository.Models.Task> taskList)
+    {
+        if (id < 0)
+        {
+            throw new ArgumentException("ID must be positive");
+        }
+
+        return taskList.SingleOrDefault(t => t.Id == id);
     }
 }
