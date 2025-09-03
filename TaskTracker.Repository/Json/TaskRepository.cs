@@ -28,7 +28,7 @@ public class TaskRepository : ITaskRepository
 
         List<TaskTracker.Repository.Models.Task> taskList = await GetAllTasks();
 
-        var id = taskList.Count == 0 ? 1 : taskList.Max(d => d.Id);
+        var id = taskList.Count == 0 ? 1 : taskList.Max(d => d.Id) + 1;
         TaskTracker.Repository.Models.Task task = new(id, description)
         {
             Status = TaskStatuses.ToDo,

@@ -50,6 +50,24 @@ public class TaskRepositoryTests
     }
 
     [Fact]
+    public async Task Should_Successfully_Add_Multiple_Tasks()
+    {
+        // Arrange
+        string taskDescriptionMask = "New Test Task #";
+        HashSet<int> ids = new();
+
+        // Act
+        for (int i = 0; i < 10; i++)
+        {
+            var id = await _repository.Add(taskDescriptionMask + i);
+            ids.Add(id);
+        }
+
+        // Assert
+        ids.Count.Should().Be(10);
+    }
+
+    [Fact]
     public async Task Should_Return_All_Tasks_When_Multiple_Tasks_Exist()
     {
         // Arrange
