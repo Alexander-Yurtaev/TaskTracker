@@ -71,9 +71,22 @@ public static class Program
 
     private static async Task ListCommand(string[] args, TaskRepository repository)
     {
+        if (args.Length != 1 && args.Length != 2)
+        {
+            Console.WriteLine("You enter too much or less parameters for the List command.");
+            return;
+        }
+
         try
         {
             var tasks = await repository.GetAllTasks();
+
+            if (args.Length == 2)
+            {
+                var status = Enum.Parse<TaskStatuses>(args[1]);
+                tasks = tasks.Where(t => t.Status == status).ToList();
+            }
+
             Console.WriteLine(new String('-', 44));
             Console.WriteLine($"|{nameof(Repository.Models.Task.Id), -3}|{nameof(Repository.Models.Task.Description), -25}|{nameof(Repository.Models.Task.Status), -12}|");
             Console.WriteLine(new String('-', 44));
