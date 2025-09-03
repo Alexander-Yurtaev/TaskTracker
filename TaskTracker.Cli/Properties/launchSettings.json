@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TaskTracker.Cli": {
+      "commandName": "Project",
+      "commandLineArgs": "add \"Buy groceries\""
+    }
+  }
+}
