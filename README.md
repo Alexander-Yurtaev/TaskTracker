@@ -4,7 +4,7 @@
 Тип: CLI
 Технологии: C#, .NET9
 Источник задания: (TaskTracker)[https://roadmap.sh/projects/task-tracker]
-Статус: в разработке
+Статус: завершён
 
 TaskTracker запускается из командной строки, принимает действия пользователя и вводимые данные в качестве аргументов
 и сохраняет задачи в JSON-файле. 
@@ -54,7 +54,7 @@ Level: Beginner
 Type: CLI
 Technology: C#, .NET9
 Source: (TaskTracker)[https://roadmap.sh/projects/task-tracker]
-Stage: In process
+Stage: Done
 
 TaskTracker run from the command line, accept user actions and inputs as arguments, 
 and store the tasks in a JSON file. 
